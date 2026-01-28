@@ -1,29 +1,42 @@
-import cv2
 import gradio as gr
+import cv2
+import numpy as np
+import os
 
-from pose_service import detect_gesture   # adjust import if in services/
+from services.pose_detection import detect_gesture
+
+
+MEME_PATH = os.path.join(
+    "assets", "memes", "hands_on_head", "panic", "CGG.png"
+)
+
 
 def run(image):
-    """
-    image: numpy array in RGB (given by Gradio)
-    """
+    # PIL → OpenCV (BGR)
+    frame = np.array(image)
+    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
-    # Gradio gives RGB, OpenCV/MediaPipe expect BGR
-    frame = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
-    # Detect gesture
     gesture = detect_gesture(frame)
 
-    # Return result for verification
-    if gesture is None:
-        return "No gesture detected"
-    return f"Detected gesture: {gesture}"
+    if gesture == "hands_on_head":
+        meme = cv2.imread(MEME_PATH)
+
+        # safety check
+        if meme is not None:
+            return cv2.cvtColor(meme, cv2.COLOR_BGR2RGB)
+
+    # always return an image
+    return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
 
-gr.Interface(
-    fn=run,
-    inputs=gr.Image(type="numpy"),
-    outputs="text",
-    title="MemePaws – Gesture Detection Test",
-    description="Upload an image and test hands-on-head gesture detection"
-).launch()
+with gr.Blocks() as demo:
+    gr.Markdown("# MemePaws – Gesture to Meme")
+    gr.Markdown("Upload an image with hands on head to get a meme")
+
+    inp = gr.Image(type="pil", label="image")
+    out = gr.Image(label="output")
+
+    gr.Button("Submit").click(run, inp, out)
+    gr.Button("Clear").click(lambda: None, None, out)
+
+demo.launch()
