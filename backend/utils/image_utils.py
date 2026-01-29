@@ -1,10 +1,6 @@
-from PIL import Image, ImageDraw, ImageFont
+import cv2
 
-def render_meme(image_path, caption):
-    img = Image.open(image_path).convert("RGB")
-    draw = ImageDraw.Draw(img)
-
-    # simple caption (top-left for now)
-    draw.text((20, 20), caption, fill="white")
-
-    return img
+def overlay(frame, meme, alpha=0.8):
+    h, w = frame.shape[:2]
+    meme = cv2.resize(meme, (w, h))
+    return cv2.addWeighted(meme, alpha, frame, 1 - alpha, 0)

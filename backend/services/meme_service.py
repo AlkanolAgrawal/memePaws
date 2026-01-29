@@ -1,45 +1,43 @@
-import os
 import json
-import random
+import cv2
+import numpy as np
+from functools import lru_cache
+from services.embedding_service import similarity
 
-# base directory where memes are stored
-MEME_DIR = "assets/memes"
-
-# load captions once (IMPORTANT)
-with open("assets/captions.json", "r") as f:
-    CAPTIONS = json.load(f)
+DB_PATH = "assets/embeddings/meme_embeddings.json"
 
 
-def get_meme(trigger):
-    """
-    trigger: string like 'hands_on_head'
-    returns:
-        image_path (str)
-        caption (str)
-    """
+with open(DB_PATH, "r") as f:
+    MEMES = json.load(f)
 
-    # folder corresponding to the trigger
-    folder_path = os.path.join(MEME_DIR, trigger)
 
-    # safety check
-    if not os.path.exists(folder_path):
-        return None, "No meme available"
+@lru_cache(maxsize=50)
+def load_image(path):
+    img = cv2.imread(path)
+    if img is None:
+        return None
+    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    # list all images in folder
-    images = [
-        img for img in os.listdir(folder_path)
-        if img.lower().endswith((".jpg", ".png", ".jpeg"))
-    ]
 
-    if not images:
-        return None, "No meme available"
+def get_best_meme(user_pose, user_emotion):
+    user = {"pose": user_pose, "emotion": user_emotion}
 
-    # pick random meme image
-    image_name = random.choice(images)
-    image_path = os.path.join(folder_path, image_name)
+    best = None
+    best_score = -1
 
-    # pick random caption
-    caption_list = CAPTIONS.get(trigger, [""])
-    caption = random.choice(caption_list)
+    for meme in MEMES:
+        score = similarity(
+            user,
+            {
+                "pose": np.array(meme["pose"]),
+                "emotion": np.array(meme["emotion"])
+            }
+        )
+        if score > best_score:
+            best_score = score
+            best = meme
 
-    return image_path, caption
+    if best is None:
+        return None
+
+    return load_image(best["path"])

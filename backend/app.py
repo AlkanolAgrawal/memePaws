@@ -1,42 +1,45 @@
 import gradio as gr
 import cv2
 import numpy as np
-import os
 
-from services.pose_detection import detect_gesture
+from services.pose_embedding import extract_pose_embedding
+from services.emotion_embeddings import extract_emotion_embedding
+from services.meme_service import get_best_meme
+from utils.image_utils import overlay
+from services.preprocess_memes import preprocess
+
+preprocess()  # safe to call; cached by JSON
 
 
-MEME_PATH = os.path.join(
-    "assets", "memes", "hands_on_head", "panic", "CGG.png"
-)
+def run(frame):
+    if frame is None:
+        return None
 
+    bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+    pose = extract_pose_embedding(bgr)
+    if pose is None:
+        return frame
 
-def run(image):
-    # PIL → OpenCV (BGR)
-    frame = np.array(image)
-    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+    emotion = extract_emotion_embedding(bgr)
+    meme = get_best_meme(pose, emotion)
 
-    gesture = detect_gesture(frame)
+    if meme is None:
+        return frame
 
-    if gesture == "hands_on_head":
-        meme = cv2.imread(MEME_PATH)
-
-        # safety check
-        if meme is not None:
-            return cv2.cvtColor(meme, cv2.COLOR_BGR2RGB)
-
-    # always return an image
-    return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    return overlay(frame, meme)
 
 
 with gr.Blocks() as demo:
-    gr.Markdown("# MemePaws – Gesture to Meme")
-    gr.Markdown("Upload an image with hands on head to get a meme")
+    gr.Markdown("# MemePaws – Pose + Emotion Meme Matching")
 
-    inp = gr.Image(type="pil", label="image")
-    out = gr.Image(label="output")
+    cam = gr.Image(
+        sources=["webcam"],
+        streaming=True,
+        label="Webcam"
+    )
 
-    gr.Button("Submit").click(run, inp, out)
-    gr.Button("Clear").click(lambda: None, None, out)
+    out = gr.Image(label="Output")
+
+    cam.stream(run, inputs=cam, outputs=out)
 
 demo.launch()
