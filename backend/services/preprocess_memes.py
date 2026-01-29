@@ -1,8 +1,10 @@
 import os
 import json
 import cv2
+import tempfile
+
 from services.pose_embedding import extract_pose_embedding
-from services.emotion_embeddings import extract_emotion_embedding
+from services.emotion_embedding import extract_emotion_embedding
 
 MEME_DIRS = [
     "assets/memes_base",
@@ -42,5 +44,14 @@ def preprocess():
                 })
 
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
-    with open(OUT_PATH, "w") as f:
-        json.dump(db, f)
+
+    if not db:
+        print("[WARN] No valid memes found. Database not updated.")
+        return
+
+    with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
+        json.dump(db, tmp, indent=2)
+        temp_name = tmp.name
+
+    os.replace(temp_name, OUT_PATH)
+    print(f"[OK] Saved {len(db)} meme embeddings")
