@@ -8,7 +8,7 @@ db = []
 
 for f in os.listdir(MEME_DIR):
     path = os.path.join(MEME_DIR, f)
-    if not f.lower().endswith((".jpg", ".png", ".jpeg")):
+    if not f.lower().endswith((".png", ".jpg", ".jpeg")):
         continue
 
     img = cv2.imread(path)

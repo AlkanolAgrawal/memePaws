@@ -11,8 +11,14 @@ def clip_embed_bgr(img_bgr):
     if img_bgr is None:
         return None
 
-    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    img_pil = Image.fromarray(img_rgb)   # ✅ critical
+    h, w = img_bgr.shape[:2]
+    if h < 50 or w < 50:
+        return None
+
+    # center crop (reduces background noise)
+    crop = img_bgr[h//3:2*h//3, w//3:2*w//3]
+    img_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
+    img_pil = Image.fromarray(img_rgb)
 
     img_tensor = preprocess(img_pil).unsqueeze(0).to(device)
 

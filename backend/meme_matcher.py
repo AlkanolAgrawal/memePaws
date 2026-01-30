@@ -1,29 +1,46 @@
-import json, cv2, numpy as np
+import json
+import numpy as np
 from collections import deque
 
-with open("assets/embeddings.json") as f:
+with open("assets/embeddings.json", "r") as f:
     MEMES = json.load(f)
 
-RECENT = deque(maxlen=5)
+RECENT = deque(maxlen=12)
 
 def cosine(a, b):
-    return np.dot(a, b) / (np.linalg.norm(a)*np.linalg.norm(b)+1e-6)
+    return np.dot(a, b) / (np.linalg.norm(a)*np.linalg.norm(b) + 1e-6)
 
-def get_best_meme(user_clip):
-    best, best_score = None, -1
+def softmax(x, temp=0.07):
+    x = np.array(x)
+    x = x / temp
+    x = x - np.max(x)
+    e = np.exp(x)
+    return e / np.sum(e)
+
+def find_best(user_clip, emotion_vec):
+    scored = []
 
     for m in MEMES:
-        score = cosine(user_clip, m["clip"])
+        img_sim = cosine(user_clip, m["clip"])
+        emo_sim = cosine(emotion_vec, m["clip"])
+
+        score = 0.7 * img_sim + 0.3 * emo_sim
 
         if m["path"] in RECENT:
-            score -= 0.15   # diversity penalty
+            score -= 0.4
 
-        if score > best_score:
-            best_score, best = score, m
+        scored.append((score, m))
 
-    if best_score < 0.25:
-        return None
+    scored.sort(key=lambda x: x[0], reverse=True)
 
-    RECENT.append(best["path"])
-    img = cv2.imread(best["path"])
-    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    TOP_K = 8
+    top = scored[:TOP_K]
+
+    scores = [s for s, _ in top]
+    probs = softmax(scores)
+
+    idx = np.random.choice(len(top), p=probs)
+    chosen = top[idx][1]
+
+    RECENT.append(chosen["path"])
+    return chosen, scores[idx]
