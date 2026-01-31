@@ -1,8 +1,13 @@
 import json
 import numpy as np
 from collections import deque
+import os
 
-with open("assets/embeddings.json", "r") as f:
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+EMBEDDINGS_PATH = os.path.join(SCRIPT_DIR, "assets", "embeddings.json")
+
+with open(EMBEDDINGS_PATH, "r") as f:
     MEMES = json.load(f)
 
 RECENT = deque(maxlen=12)

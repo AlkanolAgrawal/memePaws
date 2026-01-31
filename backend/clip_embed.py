@@ -15,7 +15,7 @@ def clip_embed_bgr(img_bgr):
     if h < 50 or w < 50:
         return None
 
-    # center crop (reduces background noise)
+    # center crop (reducing noise in background)
     crop = img_bgr[h//3:2*h//3, w//3:2*w//3]
     img_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
     img_pil = Image.fromarray(img_rgb)

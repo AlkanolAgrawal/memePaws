@@ -1,8 +1,10 @@
 import os, json, cv2
 from clip_embed import clip_embed_bgr
 
-MEME_DIR = "assets/memes"
-OUT = "assets/embeddings.json"
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+MEME_DIR = os.path.join(SCRIPT_DIR, "assets", "memes")
+OUT = os.path.join(SCRIPT_DIR, "assets", "embeddings.json")
 
 db = []
 

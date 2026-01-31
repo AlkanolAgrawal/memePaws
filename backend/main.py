@@ -4,6 +4,7 @@ import numpy as np
 from clip_embed import clip_embed_bgr
 from meme_matcher import find_best
 from emotion_anchors import TEXT_EMB, EMOTIONS
+from face_emotion import get_emotion_vector
 
 ACTIVE_MEME = None
 ONSCREEN = 0
@@ -24,17 +25,36 @@ def run(frame):
     if user_clip is None:
         return frame
 
-    # ---- emotion detection ----
-    emotion_scores = TEXT_EMB @ user_clip
-    idx = np.argmax(emotion_scores)
-    emotion_strength = emotion_scores[idx]
-    emotion_vec = TEXT_EMB[idx]
-
-    # ignore neutral frames
-    if emotion_strength < 0.25:
+    # ---- emotion detection with DeepFace ----
+    emotion_dict = get_emotion_vector(bgr)
+    if not emotion_dict:
+        return frame
+    
+    # Get dominant emotion
+    dominant_emotion = max(emotion_dict, key=emotion_dict.get)
+    emotion_strength = emotion_dict[dominant_emotion]
+    
+    # ignore neutral/weak frames
+    if dominant_emotion == 'neutral' or emotion_strength < 0.3:
         ACTIVE_MEME = None
         ONSCREEN = 0
         return frame
+    
+    # Create emotion vector by matching to CLIP emotion embeddings
+    # Map DeepFace emotions to our CLIP emotion anchors
+    emotion_mapping = {
+        'angry': 'angry reaction',
+        'disgusted': 'facepalm reaction',
+        'scared': 'shocked reaction',
+        'happy': 'happy reaction',
+        'sad': 'sad reaction',
+        'surprised': 'shocked reaction',
+        'neutral': 'awkward silence'
+    }
+    
+    emotion_text = emotion_mapping.get(dominant_emotion, 'happy reaction')
+    emotion_idx = EMOTIONS.index(emotion_text) if emotion_text in EMOTIONS else 0
+    emotion_vec = TEXT_EMB[emotion_idx]
 
     meme, score = find_best(user_clip, emotion_vec)
 
@@ -69,4 +89,3 @@ with gr.Blocks() as demo:
 
     cam.stream(run, inputs=cam, outputs=out)
 
-demo.launch()
