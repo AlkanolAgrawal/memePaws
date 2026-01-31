@@ -34,24 +34,28 @@ The system recognizes and responds to 10 different emotional states:
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.11 or higher
 - Webcam
 - GPU recommended (CUDA) but CPU works too
 
 ### Installation
 
 1. **Clone the repository**
+   ```bash
    git clone https://github.com/yourusername/memePaws.git
    cd memePaws
+   ```
 
 2. **Install dependencies**
-   cd backend
+   ```bash
    pip install -r requirements.txt
+   ```
 
 3. **Prepare your meme collection**
    - Add your meme images to `backend/assets/memes/`
    - Run the preprocessing script to generate embeddings:
      ```bash
+     cd backend
      python preprocess_memes.py
      ```
 
@@ -61,7 +65,7 @@ The system recognizes and responds to 10 different emotional states:
    ```
 
 5. **Open your browser**
-   - Gradio will automatically open the interface
+   - Gradio will automatically open the interface (usually at `http://127.0.0.1:7860`)
    - Allow webcam access when prompted
    - Start making faces! 😄
 
@@ -69,14 +73,15 @@ The system recognizes and responds to 10 different emotional states:
 
 ```
 memePaws/
+├── app.py                      # Application entry point
+├── requirements.txt            # Python dependencies
 ├── backend/
-│   ├── app.py                  # Main Gradio application
+│   ├── main.py                 # Main Gradio application logic
 │   ├── clip_embed.py           # CLIP embedding generation
-│   ├── emotion_anchors.py      # Emotion text embeddings
-│   ├── face_emotion.py         # Facial emotion processing
+│   ├── emotion_anchors.py      # Emotion text embeddings (CLIP-based)
+│   ├── face_emotion.py         # Facial emotion detection (DeepFace)
 │   ├── meme_matcher.py         # Core matching algorithm
 │   ├── preprocess_memes.py     # Meme embedding preprocessor
-│   ├── requirements.txt        # Python dependencies
 │   └── assets/
 │       ├── embeddings.json     # Pre-computed meme embeddings
 │       └── memes/              # Your meme collection
@@ -90,13 +95,13 @@ memePaws/
 
 1. **Capture**: The webcam captures your face in real-time
 2. **Embed**: CLIP generates a semantic embedding of your facial expression
-3. **Analyze**: The system compares your expression against predefined emotion anchors
+3. **Analyze**: DeepFace detects your facial emotions and maps them to CLIP emotion anchors
 4. **Match**: Memes are scored based on:
-   - 70% visual similarity to your expression
+   - 70% visual similarity to your expression (CLIP embeddings)
    - 30% emotional alignment
-   - Penalty for recently shown memes
+   - -0.4 penalty for recently shown memes
 5. **Select**: Softmax-based probabilistic selection ensures variety
-6. **Display**: The best-matching meme is overlaid on your video feed
+6. **Display**: The best-matching meme is overlaid on your video feed with 80% opacity
 
 ## 🎨 Algorithm Details
 
@@ -123,11 +128,17 @@ score = 0.7 × visual_similarity + 0.3 × emotional_similarity - repetition_pena
 3. Restart the application
 
 ### Adjust Sensitivity
-Edit thresholds in `app.py`:
+Edit thresholds in `backend/main.py`:
 ```python
 SIM_ENTER = 0.16      # Lower = more sensitive
 SIM_EXIT = 0.13       # Lower = memes stay longer
 MIN_ONSCREEN = 15     # Higher = more stable display
+```
+
+Edit emotion detection threshold:
+```python
+if dominant_emotion == 'neutral' or emotion_strength < 0.3:
+    # Increase 0.3 for less sensitive, decrease for more sensitive
 ```
 
 ### Modify Emotion Categories
@@ -142,19 +153,26 @@ EMOTIONS = [
 ## 📦 Dependencies
 
 - **PyTorch & Torchvision**: Deep learning framework
-- **OpenAI CLIP**: Vision-language model
+- **OpenAI CLIP**: Vision-language model for semantic embeddings
+- **DeepFace**: Facial emotion recognition
+- **TensorFlow & tf-keras**: Required by DeepFace
 - **OpenCV**: Computer vision and image processing
 - **Gradio**: Web interface
 - **NumPy**: Numerical computing
+- **Pillow**: Image processing
+
+See [requirements.txt](requirements.txt) for complete list with versions.
 
 ## 🤝 Contributing
 
 Contributions are welcome! Here are some ideas:
 - Add more emotion categories
-- Implement face detection for better accuracy
+- Switch between DeepFace and CLIP-based emotion detection
 - Create a meme rating/feedback system
 - Add sound effects
 - Build a mobile version
+- Optimize for real-time performance
+- Add multi-face support
 
 ## 📝 License
 
